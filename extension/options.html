@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Better Star Settings</title>
+    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <div class="global-header">
+      <div class="logo-area">
+        <h1>Better Star</h1>
+        <span class="badge">Configuration</span>
+      </div>
+    </div>
+    <div class="main-container">
+      <div class="list-panel">
+        <div class="header">
+          <h1>Collections</h1>
+        </div>
+        <div class="toolbar">
+          <input id="search" type="text" placeholder="Search repositories or tags">
+          <div id="tags" class="tags"></div>
+        </div>
+        <div id="list" class="list"></div>
+      </div>
+      
+      <div class="settings-panel">
+        <h1>Settings</h1>
+        <section>
+          <label>GitHub PAT</label>
+          <input id="pat" type="password" placeholder="ghp_...">
+          <div class="row">
+            <button id="testSave">Test & Save</button>
+            <span id="patStatus"></span>
+          </div>
+        </section>
+        <section>
+          <div class="row">
+            <button id="initGist">Create Private Gist & Bind</button>
+            <span id="gistStatus"></span>
+          </div>
+          <div class="row">
+            <label>Current Gist ID</label>
+            <input id="gistId" type="text" readonly>
+          </div>
+          <div class="row">
+            <label>Enable Cloud Sync</label>
+            <input id="syncEnabled" type="checkbox">
+          </div>
+        </section>
+        <section>
+          <h2>Import / Export</h2>
+          <div class="row">
+            <button id="export">Export</button>
+            <button id="import">Import</button>
+          </div>
+          <textarea id="io" placeholder="Paste or view JSON here"></textarea>
+          <div class="row">
+            <span id="ioStatus"></span>
+          </div>
+        </section>
+      </div>
+    </div>
+    <script src="lib/storage.js"></script>
+    <script src="lib/shard.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

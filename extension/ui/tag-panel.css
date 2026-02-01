@@ -1,0 +1,273 @@
+.better-star-panel {
+  /* Define local variables to ensure independence and theme support */
+  --bs-canvas-default: #ffffff;
+  --bs-canvas-subtle: #f6f8fa;
+  --bs-canvas-overlay: #ffffff;
+  --bs-border-default: #d0d7de;
+  --bs-border-muted: #d8dee4;
+  --bs-fg-default: #24292f;
+  --bs-fg-muted: #57606a;
+  --bs-accent-fg: #0969da;
+  --bs-accent-subtle: rgba(9, 105, 218, 0.2);
+  --bs-danger-fg: #cf222e;
+  --bs-btn-text: #24292f;
+  --bs-btn-bg: #f6f8fa;
+  --bs-btn-border: rgba(27, 31, 36, 0.15);
+  --bs-btn-hover-bg: #f3f4f6;
+  --bs-btn-primary-bg: #2da44e;
+  --bs-btn-primary-hover-bg: #2c974b;
+  --bs-btn-primary-text: #ffffff;
+  --bs-shadow-medium: 0 8px 24px rgba(140, 149, 159, 0.2);
+  --bs-item-hover: #f6f8fa;
+
+  position: absolute;
+  z-index: 10000;
+  background: var(--bs-canvas-overlay);
+  border: 1px solid var(--bs-border-default);
+  border-radius: 6px;
+  box-shadow: var(--bs-shadow-medium);
+  padding: 0;
+  min-width: 300px;
+  max-width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--bs-fg-default);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (prefers-color-scheme: dark) {
+  .better-star-panel {
+    --bs-canvas-default: #0d1117;
+    --bs-canvas-subtle: #161b22;
+    --bs-canvas-overlay: #161b22;
+    --bs-border-default: #30363d;
+    --bs-border-muted: #21262d;
+    --bs-fg-default: #c9d1d9;
+    --bs-fg-muted: #8b949e;
+    --bs-accent-fg: #58a6ff;
+    --bs-accent-subtle: rgba(56, 139, 253, 0.4);
+    --bs-danger-fg: #f85149;
+    --bs-btn-text: #c9d1d9;
+    --bs-btn-bg: #21262d;
+    --bs-btn-border: #363b42;
+    --bs-btn-hover-bg: #30363d;
+    --bs-btn-primary-bg: #238636;
+    --bs-btn-primary-hover-bg: #2ea043;
+    --bs-btn-primary-text: #ffffff;
+    --bs-shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --bs-item-hover: #161b22;
+  }
+}
+
+.better-star-panel-header {
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bs-border-default);
+  background-color: var(--bs-canvas-subtle);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.better-star-tags-wrap {
+  padding: 8px;
+  border-bottom: 1px solid var(--bs-border-default);
+}
+
+.better-star-input {
+  width: 100%;
+  border: 1px solid var(--bs-border-default);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  font-size: 13px;
+  background: var(--bs-canvas-default);
+  color: var(--bs-fg-default);
+}
+
+.better-star-input:focus {
+  border-color: var(--bs-accent-fg);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bs-accent-subtle);
+}
+
+.better-star-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Loading state */
+.better-star-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--bs-fg-muted);
+  font-style: italic;
+}
+
+.better-star-list-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bs-border-muted);
+}
+
+.better-star-list-item:hover {
+  background-color: var(--bs-item-hover);
+}
+
+.better-star-list-item:last-child {
+  border-bottom: none;
+}
+
+.better-star-list-item input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: var(--bs-accent-fg);
+}
+
+.better-star-list-item span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 图标按钮样式 */
+.better-star-icon-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--bs-fg-muted);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.better-star-icon-btn:hover {
+  background-color: var(--bs-btn-hover-bg);
+  color: var(--bs-fg-default);
+}
+
+.better-star-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* 改为左对齐，放置 Create 按钮 */
+  padding: 8px 12px;
+  border-top: 1px solid var(--bs-border-default);
+  background-color: var(--bs-canvas-subtle);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  gap: 8px;
+}
+
+.better-star-create-btn {
+  background: none;
+  border: none;
+  color: var(--bs-fg-muted);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.better-star-create-btn:hover {
+  background-color: var(--bs-btn-hover-bg);
+  color: var(--bs-fg-default);
+}
+
+/* Create Form */
+.better-star-create-form {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.better-star-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.better-star-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bs-fg-default);
+}
+
+.better-star-form-desc {
+  font-size: 12px;
+  color: var(--bs-fg-muted);
+}
+
+.better-star-textarea {
+  width: 100%;
+  border: 1px solid var(--bs-border-default);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  font-size: 13px;
+  background: var(--bs-canvas-default);
+  color: var(--bs-fg-default);
+  resize: vertical;
+  min-height: 60px;
+}
+
+.better-star-textarea:focus {
+  border-color: var(--bs-accent-fg);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bs-accent-subtle);
+}
+
+.better-star-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-primary {
+  color: var(--bs-btn-primary-text);
+  background-color: var(--bs-btn-primary-bg);
+  border: 1px solid rgba(27,31,36,0.15);
+  box-shadow: 0 1px 0 rgba(27,31,36,0.1);
+  border-radius: 6px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: var(--bs-btn-primary-hover-bg);
+}
+
+.btn-secondary {
+  color: var(--bs-btn-text);
+  background-color: var(--bs-btn-bg);
+  border: 1px solid var(--bs-btn-border);
+  border-radius: 6px;
+  padding: 5px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: var(--bs-btn-hover-bg);
+}
