@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Better Star",
+  "name": "Better Github Star",
   "version": "0.1.0",
   "description": "在 GitHub 仓库页添加收藏按钮，支持标签与私有 Gist 同步（A–Z + others 分片）。",
   "permissions": [
@@ -16,7 +16,7 @@
   },
   "options_page": "options.html",
   "action": {
-    "default_title": "Better Star",
+    "default_title": "Better Github Star",
     "default_popup": "popup.html"
   },
   "content_scripts": [

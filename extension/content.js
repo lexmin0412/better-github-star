@@ -1,6 +1,6 @@
 const API_URL = 'https://api.github.com';
 
-console.log('%c Better Star Content Script Loaded ', 'background: #222; color: #bada55; font-size: 14px;', new Date().toLocaleString());
+console.log('%c Better Github Star Content Script Loaded ', 'background: #222; color: #bada55; font-size: 14px;', new Date().toLocaleString());
 
 function getOwnerRepo() {
   const p = location.pathname.split('/').filter(Boolean);
@@ -9,7 +9,7 @@ function getOwnerRepo() {
 }
 
 function findStarButton() {
-  console.log('Better Star: Looking for star button...');
+  console.log('Better Github Star: Looking for star button...');
 
   // 策略 0: 也是最稳的，在 pagehead-actions 里面找
   const actions = document.querySelector('.pagehead-actions');
@@ -20,17 +20,17 @@ function findStarButton() {
           // 检查 aria-label
           const label = b.getAttribute('aria-label') || '';
           if (label.includes('Star this repository') || label.includes('Unstar this repository')) {
-              console.log('Better Star: Found by pagehead-actions aria-label');
+              console.log('Better Github Star: Found by pagehead-actions aria-label');
               return b;
           }
           // 检查文本
           if (b.textContent.trim() === 'Star' || b.textContent.trim() === 'Unstar') {
-              console.log('Better Star: Found by pagehead-actions text');
+              console.log('Better Github Star: Found by pagehead-actions text');
               return b;
           }
           // 检查图标
           if (b.querySelector('.octicon-star')) {
-              console.log('Better Star: Found by pagehead-actions icon');
+              console.log('Better Github Star: Found by pagehead-actions icon');
               return b;
           }
       }
@@ -40,7 +40,7 @@ function findStarButton() {
   let btn = document.querySelector('button[aria-label^="Star this repository"]');
   if (!btn) btn = document.querySelector('button[aria-label^="Unstar this repository"]');
   if (btn) {
-      console.log('Better Star: Found by aria-label');
+      console.log('Better Github Star: Found by aria-label');
       return btn;
   }
   
@@ -50,7 +50,7 @@ function findStarButton() {
   if (starIcon) {
       const b = starIcon.closest('button');
       if (b) {
-           console.log('Better Star: Found by octicon-star');
+           console.log('Better Github Star: Found by octicon-star');
            return b;
       }
   }
@@ -65,13 +65,13 @@ function findStarButton() {
           return txt === 'Star' || txt === 'Unstar';
       });
       if (btn) {
-          console.log('Better Star: Found by header text');
+          console.log('Better Github Star: Found by header text');
           return btn;
       }
     }
   }
   
-  console.log('Better Star: Star button search failed');
+  console.log('Better Github Star: Star button search failed');
   return null;
 }
 
@@ -234,7 +234,7 @@ function createMyButtonGroup(baseBtn, owner, repo) {
   dropdownBtn.className = 'btn btn-sm px-2';
   dropdownBtn.style.borderTopLeftRadius = '0';
   dropdownBtn.style.borderBottomLeftRadius = '0';
-  dropdownBtn.setAttribute('aria-label', 'Better Star options');
+  dropdownBtn.setAttribute('aria-label', 'Better Github Star options');
   
   // 插入倒三角图标
   dropdownBtn.innerHTML = `
@@ -615,17 +615,17 @@ function openTagPanel(anchor, owner, repo) {
 }
 
 async function init() {
-  console.log('Better Star: init called');
+  console.log('Better Github Star: init called');
   const ctx = getOwnerRepo();
   if (!ctx) {
-    console.log('Better Star: Not a repo page');
+    console.log('Better Github Star: Not a repo page');
     return;
   }
   
   // Fast check to prevent double injection risk during async await
   let starBtn = findStarButton();
   if (starBtn && starBtn.dataset.betterStarInjected) {
-      console.log('Better Star: Already injected (fast check)');
+      console.log('Better Github Star: Already injected (fast check)');
       return;
   }
 
@@ -638,17 +638,17 @@ async function init() {
   // Re-find in case DOM changed
   starBtn = findStarButton();
   if (!starBtn) {
-    console.log('Better Star: Star button not found');
+    console.log('Better Github Star: Star button not found');
     return;
   }
   
   // 如果已经注入过，跳过
   if (starBtn.dataset.betterStarInjected) {
-    console.log('Better Star: Already injected');
+    console.log('Better Github Star: Already injected');
     return;
   }
   
-  console.log('Better Star: Found star button', starBtn);
+  console.log('Better Github Star: Found star button', starBtn);
 
   // 1. 优先尝试：作为 pagehead-actions 的兄弟 li 插入
   // 这是最符合 DOM 结构并列要求的方式
@@ -667,7 +667,7 @@ async function init() {
       myLi.appendChild(myGroup);
       
       starLi.insertAdjacentElement('afterend', myLi);
-      console.log('Better Star: Injected as new li in pagehead-actions');
+      console.log('Better Github Star: Injected as new li in pagehead-actions');
       starBtn.dataset.betterStarInjected = '1';
       
       // Now safe to hide native button
@@ -719,7 +719,7 @@ async function init() {
   const toggler = starBtn.closest('.js-toggler-container');
   if (toggler) {
       targetNode = toggler;
-      console.log('Better Star: Target node is js-toggler-container', targetNode);
+      console.log('Better Github Star: Target node is js-toggler-container', targetNode);
   }
 
   // 2. 如果没找到，尝试找 BtnGroup (通常包裹 button 和 details)
@@ -727,7 +727,7 @@ async function init() {
       const btnGroup = starBtn.closest('.BtnGroup');
       if (btnGroup) {
           targetNode = btnGroup;
-          console.log('Better Star: Target node is BtnGroup', targetNode);
+          console.log('Better Github Star: Target node is BtnGroup', targetNode);
       }
   }
 
@@ -738,7 +738,7 @@ async function init() {
           targetNode = li;
           // 注意：如果是插在 li 后面，那就是一个新的 li，但这可能破坏 ul 结构
           // 所以这里我们应该插在 li 内部的最后
-          console.log('Better Star: Target node is li (will append inside)', targetNode);
+          console.log('Better Github Star: Target node is li (will append inside)', targetNode);
           
           // 特殊处理：如果是 li，我们创建一个新的 li 包裹我们的按钮组，或者直接 append 到 li 里面
           // 为了保持一致性，我们这里暂定 targetNode 为 li 的最后一个子元素
@@ -749,7 +749,7 @@ async function init() {
   // 4. 最后的兜底：直接用 starBtn 的父元素（form）
   if (!targetNode) {
        targetNode = starBtn.parentElement;
-       console.log('Better Star: Target node is parentElement', targetNode);
+       console.log('Better Github Star: Target node is parentElement', targetNode);
   }
 
   // 创建我们的按钮组
@@ -758,7 +758,7 @@ async function init() {
   // 插入
   if (targetNode) {
       targetNode.insertAdjacentElement('afterend', myGroup);
-      console.log('Better Star: Injected successfully');
+      console.log('Better Github Star: Injected successfully');
       // 标记
       starBtn.dataset.betterStarInjected = '1';
 
@@ -787,7 +787,7 @@ async function init() {
           });
       }
   } else {
-      console.error('Better Star: Could not find parent to insert');
+      console.error('Better Github Star: Could not find parent to insert');
   }
 }
 
