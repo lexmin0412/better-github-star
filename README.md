@@ -11,7 +11,11 @@ Better Github Star 是一个 Chrome 浏览器扩展，旨在增强 GitHub 原生
     *   **深度集成**：无感替换 GitHub 仓库页原有的 Star 按钮逻辑。
     *   **交互升级**：提供比原生更流畅、更便捷的标签（List）选择与创建交互体验。
     *   **完美适配**：自动适配 GitHub 浅色/深色（Dark Mode）主题。
-*   **🔍 强大的管理页面**：提供更强大的已 Star 仓库管理面板，支持按标签（Tag）快速筛选、搜索和管理你的收藏库。
+*   **🔍 强大的管理页面**：
+    *   **数据聚合**：同步 GitHub Star 数据（包括仓库和 Star List），并与 Gist 中的标签数据无缝合并。
+    *   **高效浏览**：支持无限滚动加载（Infinite Scroll），轻松浏览成千上万个 Star 项目。
+    *   **深度搜索**：支持同时搜索仓库名称、描述（Description）和标签（Tags）。
+    *   **智能排序**：按 Star 时间倒序排列，优先展示最近收藏的项目。
 *   **🔒 数据隐私**：所有数据均存储在你的本地浏览器或私有 Gist 中，不经过任何第三方服务器，完全由你掌控。
 
 ## 🛠️ 技术栈
@@ -24,7 +28,7 @@ Better Github Star 是一个 Chrome 浏览器扩展，旨在增强 GitHub 原生
 
 ### 1. 下载代码
 ```bash
-git clone https://github.com/lexmin/better-star.git
+git clone https://github.com/lexmin/better-github-star.git
 ```
 
 ### 2. 加载扩展
@@ -68,7 +72,7 @@ extension/
 
 ## 📝 待办事项 / 计划
 
-*   [ ] 添加按标签筛选/搜索仓库的独立页面。
+*   [x] 添加按标签筛选/搜索仓库的独立页面（已在 Options 页面实现）。
 *   [ ] 优化标签输入的交互体验（支持自动补全）。
 *   [ ] 支持导出/导入数据。
 
