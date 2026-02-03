@@ -76,11 +76,26 @@
     return await res.text();
   }
 
+  async function getAllStarredRepos(pat) {
+    const results = [];
+    let page = 1;
+    while (true) {
+      const url = `https://api.github.com/user/starred?per_page=100&page=${page}`;
+      const data = await request(url, 'GET', pat);
+      if (!data || !Array.isArray(data) || data.length === 0) break;
+      results.push(...data);
+      if (data.length < 100) break;
+      page++;
+    }
+    return results;
+  }
+
   const api = {
     request,
     testPAT,
     starRepo,
     unstarRepo,
+    getAllStarredRepos,
     createPrivateGist,
     getGist,
     patchGistFiles,
