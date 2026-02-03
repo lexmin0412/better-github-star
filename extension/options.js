@@ -1,4 +1,5 @@
 const ST = window.BetterStar && window.BetterStar.storage;
+const GH = window.BetterStar && window.BetterStar.github;
 
 // --- Settings Logic ---
 
@@ -19,6 +20,8 @@ async function onTestSave() {
     if (res && res.ok) {
       await ST.setPAT(pat);
       status.textContent = 'Saved';
+      // Reload list to fetch from GitHub with new PAT
+      initList();
     } else {
       status.textContent = 'Invalid PAT';
     }
@@ -84,6 +87,8 @@ document.getElementById('import').addEventListener('click', onImport);
 let allEntries = [];
 let activeTag = '';
 let q = '';
+const PAGE_SIZE = 50;
+let visibleCount = PAGE_SIZE;
 
 function renderTags(tags) {
   const wrap = document.getElementById('tags');
@@ -94,6 +99,7 @@ function renderTags(tags) {
   allChip.textContent = 'All';
   allChip.addEventListener('click', () => {
     activeTag = '';
+    visibleCount = PAGE_SIZE;
     render();
   });
   wrap.appendChild(allChip);
@@ -103,18 +109,21 @@ function renderTags(tags) {
     chip.textContent = t;
     chip.addEventListener('click', () => {
       activeTag = activeTag === t ? '' : t;
+      visibleCount = PAGE_SIZE;
       render();
     });
     wrap.appendChild(chip);
   });
 }
 
-function renderList(entries) {
+function renderList(entries, append = false) {
   const list = document.getElementById('list');
   if (!list) return;
-  list.innerHTML = '';
+  if (!append) {
+    list.innerHTML = '';
+  }
 
-  if (entries.length === 0) {
+  if (entries.length === 0 && !append) {
     list.innerHTML = `<div class="empty-state">No repositories found.</div>`;
     return;
   }
@@ -131,6 +140,14 @@ function renderList(entries) {
     title.target = '_blank';
     title.textContent = e.full_name;
     title.title = e.full_name; // tooltip
+
+    const desc = document.createElement('div');
+    desc.className = 'repo-desc';
+    desc.style.fontSize = '12px';
+    desc.style.color = '#57606a';
+    desc.style.marginTop = '4px';
+    desc.textContent = e.description || '';
+    if (!e.description) desc.style.display = 'none';
 
     const tagsRow = document.createElement('div');
     tagsRow.className = 'tags-row';
@@ -186,6 +203,7 @@ function renderList(entries) {
     tagsRow.appendChild(addBtn);
 
     meta.appendChild(title);
+    meta.appendChild(desc);
     meta.appendChild(tagsRow);
     
     const actions = document.createElement('div');
@@ -216,6 +234,8 @@ function renderList(entries) {
         isDanger: true,
         onConfirm: () => {
           const [owner, repo] = e.full_name.split('/');
+          // If it's a real unstar, we should call GH API too?
+          // background.js 'unstar_and_remove' likely handles it.
           chrome.runtime.sendMessage({ type: 'unstar_and_remove', owner, repo }, (res) => {
             if (res && res.ok) {
               allEntries = allEntries.filter((x) => x.full_name !== e.full_name);
@@ -235,6 +255,11 @@ function updateRepoTags(entry, newTags) {
     chrome.runtime.sendMessage({ type: 'update_tags', owner, repo, tags: newTags }, (res) => {
         if (res && res.ok) {
             entry.tags = newTags;
+            // Update in allEntries
+            const idx = allEntries.findIndex(x => x.full_name === entry.full_name);
+            if (idx >= 0) {
+                allEntries[idx].tags = newTags;
+            }
             render();
         } else {
             alert('Update failed');
@@ -438,37 +463,113 @@ function createPopover({ target, type, title, message, initialValue, allTags, cu
 }
 
 
+function getFilteredEntries() {
+  return allEntries.filter((e) => {
+    const hitTag = activeTag ? (e.tags || []).includes(activeTag) : true;
+    const hitQ = q
+      ? (e.full_name || '').toLowerCase().includes(q) ||
+        (e.tags || []).some((t) => t.toLowerCase().includes(q)) ||
+        (e.description || '').toLowerCase().includes(q)
+      : true;
+    return hitTag && hitQ;
+  });
+}
+
 function render() {
   const tagsSet = new Set();
   allEntries.forEach((e) => (e.tags || []).forEach((t) => tagsSet.add(t)));
   renderTags(Array.from(tagsSet).sort());
-  const entries = allEntries.filter((e) => {
-    const hitTag = activeTag ? (e.tags || []).includes(activeTag) : true;
-    const hitQ = q
-      ? (e.full_name || '').toLowerCase().includes(q) ||
-        (e.tags || []).some((t) => t.toLowerCase().includes(q))
-      : true;
-    return hitTag && hitQ;
-  });
-  renderList(entries);
+  const entries = getFilteredEntries();
+  renderList(entries.slice(0, visibleCount));
 }
 
-function initList() {
+async function initList() {
   const list = document.getElementById('list');
   if (!list) return;
-  list.innerHTML = `<div class="loading-state"><span class="loading-spinner"></span>Loading...</div>`;
+  list.innerHTML = `<div class="loading-state"><span class="loading-spinner"></span>Loading repositories...</div>`;
 
-  chrome.runtime.sendMessage({ type: 'get_entries_by_shards', shards: 'all' }, (res) => {
-    allEntries = (res && res.entries) || [];
-    render();
+  // 1. Fetch Better Star Data (Local/Gist via Background)
+  const p1 = new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: 'get_entries_by_shards', shards: 'all' }, (res) => {
+        resolve((res && res.entries) || []);
+      });
   });
+
+  // 2. Fetch GitHub Data (if PAT available)
+  const pat = await ST.getPAT();
+  const p2 = pat ? GH.getAllStarredRepos(pat).catch(e => {
+      console.error('Failed to fetch from GitHub', e);
+      return [];
+  }) : Promise.resolve([]);
+
+  const [bsEntries, ghRepos] = await Promise.all([p1, p2]);
+
+  // 3. Merge
+  // Map<full_name, entry>
+  const mergedMap = new Map();
+  
+  // Populate from Better Star first (Trusted Source for Tags)
+  bsEntries.forEach(e => {
+      mergedMap.set(e.full_name, e);
+  });
+
+  // Then merge GitHub data
+  ghRepos.forEach(r => {
+      const full_name = r.full_name;
+      const existing = mergedMap.get(full_name);
+      
+      if (existing) {
+          // Exists in Better Star -> Update metadata (description, url) but KEEP TAGS
+          mergedMap.set(full_name, {
+              ...existing,
+              description: r.description || existing.description,
+              url: r.html_url || existing.url,
+              starredAt: r.starred_at ? new Date(r.starred_at).getTime() : existing.starredAt
+          });
+      } else {
+          // New from GitHub -> Add it
+          mergedMap.set(full_name, {
+              full_name: full_name,
+              url: r.html_url,
+              description: r.description,
+              tags: [],
+              starredAt: r.starred_at ? new Date(r.starred_at).getTime() : Date.now()
+          });
+      }
+  });
+
+  allEntries = Array.from(mergedMap.values());
+  // Sort by starredAt descending (newest first)
+  allEntries.sort((a, b) => {
+      const ta = a.starredAt || 0;
+      const tb = b.starredAt || 0;
+      return tb - ta;
+  });
+
+  visibleCount = PAGE_SIZE;
+  render();
+  
   const input = document.getElementById('search');
   if (input) {
       input.addEventListener('input', () => {
         q = input.value.trim().toLowerCase();
+        visibleCount = PAGE_SIZE;
         render();
       });
   }
+
+  // Infinite scroll
+  list.addEventListener('scroll', () => {
+      if (list.scrollTop + list.clientHeight >= list.scrollHeight - 50) {
+          const entries = getFilteredEntries();
+          if (visibleCount < entries.length) {
+              const start = visibleCount;
+              visibleCount += PAGE_SIZE;
+              const nextBatch = entries.slice(start, visibleCount);
+              renderList(nextBatch, true);
+          }
+      }
+  });
 }
 
 // Initial load

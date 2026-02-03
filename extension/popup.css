@@ -277,7 +277,7 @@ span[id$="Status"] {
 }
 
 .item {
-  padding: 12px 8px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
