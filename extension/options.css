@@ -197,7 +197,7 @@ button:hover {
 #testSave, #initGist {
   background-color: var(--color-btn-primary-bg);
   color: var(--color-btn-primary-text);
-  border-color: rgba(27,31,36,0.15);
+  border-color: var(--color-btn-border);
 }
 
 #testSave:hover, #initGist:hover {

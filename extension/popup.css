@@ -177,7 +177,7 @@ button:active {
 #testSave, #initGist {
   background-color: var(--color-btn-primary-bg);
   color: var(--color-btn-primary-text);
-  border-color: rgba(27,31,36,0.15);
+  border-color: var(--color-btn-border);
 }
 
 #testSave:hover, #initGist:hover {
@@ -556,7 +556,7 @@ span[id$="Status"] {
 .bs-btn-primary {
   color: var(--color-btn-primary-text);
   background-color: var(--color-btn-primary-bg);
-  border-color: rgba(27,31,36,0.15);
+  border-color: var(--color-btn-border);
 }
 
 .bs-btn-primary:hover {

@@ -144,7 +144,7 @@ function renderList(entries, append = false) {
     const desc = document.createElement('div');
     desc.className = 'repo-desc';
     desc.style.fontSize = '12px';
-    desc.style.color = '#57606a';
+    desc.style.color = 'var(--color-fg-muted)';
     desc.style.marginTop = '4px';
     desc.textContent = e.description || '';
     if (!e.description) desc.style.display = 'none';
@@ -333,7 +333,7 @@ function createPopover({ target, type, title, message, initialValue, allTags, cu
         if (filter && !exactMatch) {
              const item = document.createElement('label');
              item.className = 'bs-popover-list-item';
-             item.style.color = '#0969da';
+             item.style.color = 'var(--color-accent-fg)';
              const checkbox = document.createElement('input');
              checkbox.type = 'checkbox';
              checkbox.checked = selectedTags.has(filter);
@@ -349,7 +349,7 @@ function createPopover({ target, type, title, message, initialValue, allTags, cu
         if (matches.length === 0 && !filter) {
             const empty = document.createElement('div');
             empty.style.padding = '8px';
-            empty.style.color = '#57606a';
+            empty.style.color = 'var(--color-fg-muted)';
             empty.style.textAlign = 'center';
             empty.textContent = 'No tags found';
             listContainer.appendChild(empty);
