@@ -200,6 +200,80 @@ span[id$="Status"] {
   color: var(--color-fg-muted);
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-default);
+  margin-bottom: 0;
+  background: var(--color-canvas-subtle);
+}
+
+.tab-btn {
+  flex: 1;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.tab-btn:hover {
+  background: var(--color-item-hover);
+  color: var(--color-fg-default);
+}
+
+.tab-btn.active {
+  border-bottom-color: var(--color-accent-fg); /* #fd8c73 */
+  color: var(--color-fg-default);
+  background: var(--color-canvas-default);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Tag List in Popup */
+.tag-list {
+  padding: 0;
+}
+
+.tag-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-fg-default);
+}
+
+.tag-item:last-child {
+  border-bottom: none;
+}
+
+.tag-item:hover {
+  background-color: var(--color-item-hover);
+  color: var(--color-accent-fg);
+}
+
+.tag-count {
+  background-color: var(--color-canvas-subtle);
+  color: var(--color-fg-muted);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border-default);
+}
+
 /* List/Chip Components */
 .icon-btn {
   background: none;

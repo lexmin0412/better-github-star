@@ -15,7 +15,17 @@
         </button>
     </div>
 
-    <section>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="lists">Lists</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+
+    <div id="tab-lists" class="tab-content active">
+        <div id="tag-list" class="tag-list">Loading...</div>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+      <section>
       <div class="form-group">
         <label for="pat">GitHub PAT</label>
         <input id="pat" type="password" placeholder="ghp_...">
@@ -43,6 +53,7 @@
         <label for="hideNativeStar" style="margin: 0; font-weight: normal;">Hide Native Star Button</label>
       </div>
     </section>
+    </div>
     
     <script src="lib/storage.js"></script>
     <script src="popup.js"></script>

@@ -68,4 +68,53 @@ if (btnOptions) {
   });
 }
 
+// --- Tabs & List Logic ---
+
+const tabs = document.querySelectorAll('.tab-btn');
+tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        btn.classList.add('active');
+        const tabId = btn.dataset.tab;
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+    });
+});
+
+async function loadTags() {
+    const listEl = document.getElementById('tag-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="padding:16px; color:var(--color-fg-muted);">Loading...</div>';
+    
+    const tags = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'list_tags' }, res => resolve((res && res.tags) || []));
+    });
+
+    listEl.innerHTML = '';
+    
+    if (tags.length === 0) {
+        listEl.innerHTML = '<div style="padding:16px; color:var(--color-fg-muted);">No tags found.</div>';
+        return;
+    }
+
+    tags.forEach(tag => {
+        const item = document.createElement('div');
+        item.className = 'tag-item';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = tag;
+        
+        item.appendChild(nameSpan);
+        
+        item.addEventListener('click', () => {
+            const url = chrome.runtime.getURL(`options.html?tag=${encodeURIComponent(tag)}`);
+            chrome.tabs.create({ url });
+        });
+        
+        listEl.appendChild(item);
+    });
+}
+
+loadTags();
 load();
