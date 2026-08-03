@@ -8,69 +8,178 @@ function getOwnerRepo() {
   return null;
 }
 
+function isVisible(el) {
+  return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+}
+
+// 新版 GitHub 的 aria-label 是动态的: "Star owner/repo" / "Unstar owner/repo"
+function expectedStarLabels() {
+  const ctx = getOwnerRepo();
+  if (!ctx) return [];
+  return [`Star ${ctx.owner}/${ctx.repo}`, `Unstar ${ctx.owner}/${ctx.repo}`];
+}
+
+function parseStarCount(txt) {
+  const clean = String(txt || '').replace(/,/g, '').toLowerCase();
+  if (/^\d+$/.test(clean)) {
+    const num = parseInt(clean, 10);
+    return isNaN(num) ? null : num;
+  }
+  if (clean.endsWith('k')) {
+    const num = parseFloat(clean) * 1000;
+    return isNaN(num) ? null : num;
+  }
+  return null;
+}
+
+// 新版: 计数在按钮内部的 CounterLabel; 旧版: 独立 counter 元素
+function getStarCount(baseBtn) {
+  if (baseBtn) {
+    const counterLabel = baseBtn.querySelector('[data-component="CounterLabel"]');
+    if (counterLabel) {
+      const txt = counterLabel.textContent.trim();
+      return { text: txt, num: parseStarCount(txt) };
+    }
+  }
+  const counter = document.getElementById('repo-stars-counter-star') ||
+                  document.getElementById('repo-stars-counter-unstar') ||
+                  document.querySelector('.social-count.js-social-count');
+  if (!counter) return { text: '', num: null };
+
+  const titleVal = counter.getAttribute('title');
+  if (titleVal) {
+    const num = parseInt(titleVal.replace(/,/g, ''), 10);
+    if (!isNaN(num)) return { text: titleVal, num };
+  }
+  const txt = counter.textContent.trim();
+  let num = parseStarCount(txt);
+  if (num === null) {
+    const ariaLabel = counter.getAttribute('aria-label');
+    const match = ariaLabel && ariaLabel.match(/^(\d+(?:,\d+)*)/);
+    if (match) {
+      num = parseInt(match[1].replace(/,/g, ''), 10);
+      if (!isNaN(num)) return { text: match[1], num };
+    }
+  }
+  return { text: txt, num };
+}
+
+function isButtonStarred(btn) {
+  if (!btn) return false;
+  const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+  if (label.startsWith('unstar')) return true;
+  if (label.startsWith('star ')) return false;
+  const text = btn.textContent.trim().toLowerCase();
+  if (text.includes('starred')) return true;
+  if (btn.querySelector('.octicon-star-fill')) return true;
+  // 旧版兜底: 在附近找可见的 Unstar 按钮
+  const parent = btn.closest('ul[data-testid="repo-header-actions"]') ||
+                 btn.closest('.pagehead-actions') ||
+                 btn.parentElement;
+  if (parent) {
+    const unstarBtn = Array.from(parent.querySelectorAll('button')).find((b) => {
+      const l = (b.getAttribute('aria-label') || '').toLowerCase();
+      const t = b.textContent.trim().toLowerCase();
+      return (l.startsWith('unstar') || t === 'unstar') && isVisible(b);
+    });
+    if (unstarBtn) return true;
+  }
+  return false;
+}
+
+function hideNativeStar(starBtn) {
+  // 新版: 隐藏 star 所在的 li (包含整个 ButtonGroup)
+  const li = starBtn.closest('ul[data-testid="repo-header-actions"] > li');
+  if (li) {
+    li.style.setProperty('display', 'none', 'important');
+    return;
+  }
+  // 旧版: 隐藏 starring-container / js-toggler-container / BtnGroup
+  const starContainer = document.querySelector('.starring-container');
+  if (starContainer) {
+    starContainer.style.setProperty('display', 'none', 'important');
+    return;
+  }
+  const container = starBtn.closest('.js-toggler-container') ||
+                    starBtn.closest('.BtnGroup');
+  if (container) {
+    container.style.setProperty('display', 'none', 'important');
+    return;
+  }
+}
+
 function findStarButton() {
   console.log('Better Github Star: Looking for star button...');
 
-  // 策略 0: 也是最稳的，在 pagehead-actions 里面找
-  const actions = document.querySelector('.pagehead-actions');
-  if (actions) {
-      // 遍历里面的 button，看哪个像 Star
-      const btns = actions.querySelectorAll('button');
-      for (let b of btns) {
-          // 检查 aria-label
-          const label = b.getAttribute('aria-label') || '';
-          if (label.includes('Star this repository') || label.includes('Unstar this repository')) {
-              console.log('Better Github Star: Found by pagehead-actions aria-label');
-              return b;
-          }
-          // 检查文本
-          if (b.textContent.trim() === 'Star' || b.textContent.trim() === 'Unstar') {
-              console.log('Better Github Star: Found by pagehead-actions text');
-              return b;
-          }
-          // 检查图标
-          if (b.querySelector('.octicon-star')) {
-              console.log('Better Github Star: Found by pagehead-actions icon');
-              return b;
-          }
-      }
+  // 策略 0 (新版布局): repo-header-actions 里的 star-button
+  const headerActions = document.querySelector('ul[data-testid="repo-header-actions"]');
+  if (headerActions) {
+    const btns = Array.from(headerActions.querySelectorAll('button[data-testid="star-button"]'));
+    const visibleBtn = btns.find(isVisible);
+    if (visibleBtn) {
+      console.log('Better Github Star: Found by repo-header-actions');
+      return visibleBtn;
+    }
+    if (btns.length) {
+      console.log('Better Github Star: Found by repo-header-actions (hidden)');
+      return btns[0];
+    }
   }
 
-  // 策略 1: 全局 aria-label (原逻辑，放宽匹配)
+  // 策略 1: 全局按 data-testid 找，排除移动端 responsive 里的重复按钮
+  const allBtns = Array.from(document.querySelectorAll('button[data-testid="star-button"]'))
+    .filter((b) => !b.closest('[data-testid="responsive-social-buttons"]'));
+  const visibleAll = allBtns.find(isVisible);
+  if (visibleAll) {
+    console.log('Better Github Star: Found by data-testid');
+    return visibleAll;
+  }
+  if (allBtns.length) {
+    console.log('Better Github Star: Found by data-testid (hidden)');
+    return allBtns[0];
+  }
+
+  // 策略 2: 新版动态 aria-label (Star owner/repo)
+  for (const label of expectedStarLabels()) {
+    const btn = document.querySelector(`button[aria-label="${label}"]`);
+    if (btn) {
+      console.log('Better Github Star: Found by dynamic aria-label');
+      return btn;
+    }
+  }
+
+  // 策略 3 (旧版): aria-label^="Star this repository"
   let btn = document.querySelector('button[aria-label^="Star this repository"]');
   if (!btn) btn = document.querySelector('button[aria-label^="Unstar this repository"]');
   if (btn) {
-      console.log('Better Github Star: Found by aria-label');
-      return btn;
-  }
-  
-  // 策略 2: 查找带有 star 图标的按钮
-  // 这是一个很强的特征
-  const starIcon = document.querySelector('.octicon-star');
-  if (starIcon) {
-      const b = starIcon.closest('button');
-      if (b) {
-           console.log('Better Github Star: Found by octicon-star');
-           return b;
-      }
+    console.log('Better Github Star: Found by legacy aria-label');
+    return btn;
   }
 
-  // 3. 兜底：查找包含 Star/Unstar 文本的按钮，且位于页面头部区域
-  if (!btn) {
-    const header = document.querySelector('#repository-container-header') || document.querySelector('.pagehead');
-    if (header) {
-      const candidates = header.querySelectorAll('button');
-      btn = Array.from(candidates).find((b) => {
-          const txt = b.textContent.trim();
-          return txt === 'Star' || txt === 'Unstar';
-      });
-      if (btn) {
-          console.log('Better Github Star: Found by header text');
-          return btn;
-      }
+  // 策略 4: 带 star 图标的按钮
+  const starIcon = document.querySelector('.octicon-star');
+  if (starIcon) {
+    const b = starIcon.closest('button');
+    if (b) {
+      console.log('Better Github Star: Found by octicon-star');
+      return b;
     }
   }
-  
+
+  // 策略 5 (旧版兜底): 头部 Star/Unstar 文本
+  const header = document.querySelector('#repository-container-header') || document.querySelector('.pagehead');
+  if (header) {
+    const candidates = header.querySelectorAll('button');
+    btn = Array.from(candidates).find((b) => {
+      const txt = b.textContent.trim();
+      return txt === 'Star' || txt === 'Unstar';
+    });
+    if (btn) {
+      console.log('Better Github Star: Found by header text');
+      return btn;
+    }
+  }
+
   console.log('Better Github Star: Star button search failed');
   return null;
 }
@@ -102,83 +211,13 @@ function createMyButtonGroup(baseBtn, owner, repo) {
   mainBtn.style.display = 'inline-flex';
   mainBtn.style.alignItems = 'center';
   
-  // Try to find the star count
-  let starCount = '';
-  let starCountNum = null; // Use null to indicate not parsed
-
-  const getStarCount = () => {
-      const counter = document.getElementById('repo-stars-counter-star') || 
-                      document.getElementById('repo-stars-counter-unstar') ||
-                      document.querySelector('.social-count.js-social-count');
-      
-      if (!counter) return '';
-      
-      // Try to get exact number from title attribute first
-      const titleVal = counter.getAttribute('title');
-      if (titleVal) {
-          const num = parseInt(titleVal.replace(/,/g, ''), 10);
-          if (!isNaN(num)) {
-              starCountNum = num;
-              return titleVal; 
-          }
-      }
-      
-      // Fallback to text content
-      const txt = counter.textContent.trim();
-      const cleanTxt = txt.replace(/,/g, '').toLowerCase();
-      
-      if (/^\d+$/.test(cleanTxt)) {
-          const num = parseInt(cleanTxt, 10);
-          if (!isNaN(num)) starCountNum = num;
-      } else if (cleanTxt.endsWith('k')) {
-          const num = parseFloat(cleanTxt) * 1000;
-          if (!isNaN(num)) starCountNum = num;
-      }
-      
-      // If still not parsed, try aria-label
-      if (starCountNum === null) {
-          const ariaLabel = counter.getAttribute('aria-label');
-          if (ariaLabel) {
-             // Extract number from start of string "3 users starred..."
-             const match = ariaLabel.match(/^(\d+(?:,\d+)*)/);
-             if (match) {
-                 const numStr = match[1];
-                 const num = parseInt(numStr.replace(/,/g, ''), 10);
-                 if (!isNaN(num)) {
-                     starCountNum = num;
-                     return numStr;
-                 }
-             }
-          }
-      }
-
-      return txt;
-  };
-  
-  starCount = getStarCount();
+  // Try to find the star count (new layout: inside the button's CounterLabel)
+  const countInfo = getStarCount(baseBtn);
+  let starCount = countInfo.text;
+  let starCountNum = countInfo.num; // null indicates not parsed
 
   // 判断是否已收藏
-  let isStarred = false;
-  const baseLabel = (baseBtn.getAttribute('aria-label') || '').toLowerCase();
-  const baseText = baseBtn.textContent.trim().toLowerCase();
-  
-  // Helper to check visibility
-  const isVisible = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-
-  if ((baseLabel.includes('unstar') || baseText === 'unstar') && isVisible(baseBtn)) {
-      isStarred = true;
-  } else {
-      // 尝试在附近找找有没有 visible 的 Unstar 按钮 (针对 Star 按钮隐藏 Unstar 按钮显示的情况)
-      const parent = baseBtn.closest('.pagehead-actions') || baseBtn.parentElement;
-      if (parent) {
-          const unstarBtn = Array.from(parent.querySelectorAll('button')).find(b => {
-             const l = (b.getAttribute('aria-label') || '').toLowerCase();
-             const t = b.textContent.trim().toLowerCase();
-             return (l.includes('unstar') || t === 'unstar') && isVisible(b);
-          });
-          if (unstarBtn) isStarred = true;
-      }
-  }
+  const isStarred = isButtonStarred(baseBtn);
 
   // Record initial state
   const initialStarred = isStarred;
@@ -650,72 +689,35 @@ async function init() {
   
   console.log('Better Github Star: Found star button', starBtn);
 
-  // 1. 优先尝试：作为 pagehead-actions 的兄弟 li 插入
-  // 这是最符合 DOM 结构并列要求的方式
+  // 1. 优先尝试：作为 repo-header-actions / pagehead-actions 的兄弟 li 插入
   const starLi = starBtn.closest('li');
-  if (starLi && starLi.parentElement && starLi.parentElement.classList.contains('pagehead-actions')) {
+  const actionsList = starLi && starLi.parentElement;
+  if (starLi && actionsList &&
+      (actionsList.matches('ul[data-testid="repo-header-actions"]') ||
+       actionsList.classList.contains('pagehead-actions'))) {
       const myLi = document.createElement('li');
-      // 如果是为了保持间距，可能需要一点 margin，但通常 pagehead-actions 会处理
-      // 为了保险，我们可以给 li 加个 class
-      myLi.className = 'd-inline-block'; // 模仿 GitHub 的 li 行为
-      myLi.style.marginLeft = '8px'; // 保持一点间距
-      
-      const myGroup = createMyButtonGroup(starBtn, ctx.owner, ctx.repo);
-      // 移除 myGroup 原本的 margin，交给 li 控制
-      myGroup.style.marginLeft = '0';
-      
-      myLi.appendChild(myGroup);
-      
-      starLi.insertAdjacentElement('afterend', myLi);
-      console.log('Better Github Star: Injected as new li in pagehead-actions');
-      starBtn.dataset.betterStarInjected = '1';
-      
-      // Now safe to hide native button
-      if (settings && settings.hideNativeStar) {
-          // Method 1: Hide the main container .starring-container
-          // This is the most reliable way as it wraps both Star and Unstar states
-          const starContainer = document.querySelector('.starring-container');
-          if (starContainer) {
-               starContainer.style.setProperty('display', 'none', 'important');
-          }
+      myLi.className = 'd-inline-block';
+      myLi.style.marginLeft = '8px';
 
-          // Method 2: Find buttons by aria-label and hide their containers
-          // This is a fallback if .starring-container is not found or structure is different
-          const buttons = Array.from(document.querySelectorAll('button'));
-          const nativeButtons = buttons.filter(btn => {
-               const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-               return label.includes('star this repository') || label.includes('unstar this repository');
-          });
-          
-          nativeButtons.forEach(btn => {
-              // Avoid hiding OUR button or already hidden buttons
-              if (btn.closest('.react-user-list-group')) return;
-              
-              const container = btn.closest('.starring-container') || 
-                                btn.closest('.js-toggler-container') ||
-                                btn.closest('.BtnGroup');
-              
-              if (container) {
-                  container.style.setProperty('display', 'none', 'important');
-              }
-          });
+      const myGroup = createMyButtonGroup(starBtn, ctx.owner, ctx.repo);
+      myGroup.style.marginLeft = '0';
+
+      myLi.appendChild(myGroup);
+      starLi.insertAdjacentElement('afterend', myLi);
+      console.log('Better Github Star: Injected as new li in repo-header-actions');
+      starBtn.dataset.betterStarInjected = '1';
+
+      if (settings && settings.hideNativeStar) {
+          hideNativeStar(starBtn);
       }
-      
       return;
   }
 
   // 以下是兜底逻辑，用于非标准页面结构
 
-  // 查找原生的下拉按钮（仅用于定位，不操作它）
-  // 实际上我们只需要找到整个 Star 按钮组的末尾
-  
-  // 策略：找到 Star 按钮的父容器，通常是一个 form 或 div.btn-group
-  // 然后插在这个容器的后面
-  
   let targetNode = null;
-  
-  // 1. 尝试找 js-toggler-container (Star 组件的最外层容器，包含 Starred 和 Unstarred 两个状态)
-  // 这是最准确的，因为它包含了整个 Star 组件
+
+  // 1. 尝试找 js-toggler-container (旧版 Star 组件最外层容器)
   const toggler = starBtn.closest('.js-toggler-container');
   if (toggler) {
       targetNode = toggler;
@@ -731,21 +733,15 @@ async function init() {
       }
   }
 
-  // 3. 兜底：如果还是没找到，尝试找 li (pagehead-actions 的项)
+  // 3. 兜底：如果还是没找到，尝试找 li
   if (!targetNode) {
       const li = starBtn.closest('li');
-      if (li && li.parentElement.classList.contains('pagehead-actions')) {
+      if (li) {
           targetNode = li;
-          // 注意：如果是插在 li 后面，那就是一个新的 li，但这可能破坏 ul 结构
-          // 所以这里我们应该插在 li 内部的最后
-          console.log('Better Github Star: Target node is li (will append inside)', targetNode);
-          
-          // 特殊处理：如果是 li，我们创建一个新的 li 包裹我们的按钮组，或者直接 append 到 li 里面
-          // 为了保持一致性，我们这里暂定 targetNode 为 li 的最后一个子元素
-          targetNode = li.lastElementChild;
+          console.log('Better Github Star: Target node is li', targetNode);
       }
   }
-  
+
   // 4. 最后的兜底：直接用 starBtn 的父元素（form）
   if (!targetNode) {
        targetNode = starBtn.parentElement;
@@ -754,37 +750,15 @@ async function init() {
 
   // 创建我们的按钮组
   const myGroup = createMyButtonGroup(starBtn, ctx.owner, ctx.repo);
-  
+
   // 插入
   if (targetNode) {
       targetNode.insertAdjacentElement('afterend', myGroup);
       console.log('Better Github Star: Injected successfully');
-      // 标记
       starBtn.dataset.betterStarInjected = '1';
 
-      // Hide native button if settings allow (Fallback path)
       if (settings && settings.hideNativeStar) {
-          const starContainer = document.querySelector('.starring-container');
-          if (starContainer) {
-               starContainer.style.setProperty('display', 'none', 'important');
-          }
-          
-          // Fallback logic for finding native buttons
-          const buttons = Array.from(document.querySelectorAll('button'));
-          const nativeButtons = buttons.filter(btn => {
-               const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-               return label.includes('star this repository') || label.includes('unstar this repository');
-          });
-          
-          nativeButtons.forEach(btn => {
-              if (btn.closest('.react-user-list-group')) return;
-              const container = btn.closest('.starring-container') || 
-                                btn.closest('.js-toggler-container') ||
-                                btn.closest('.BtnGroup');
-              if (container) {
-                  container.style.setProperty('display', 'none', 'important');
-              }
-          });
+          hideNativeStar(starBtn);
       }
   } else {
       console.error('Better Github Star: Could not find parent to insert');
