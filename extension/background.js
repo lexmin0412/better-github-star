@@ -182,6 +182,45 @@ async function createList(name) {
   return { ok: true };
 }
 
+function extractGistId(input) {
+  const s = String(input || '').trim();
+  if (!s) return '';
+  const m = s.match(/gist\.github\.com\/(?:[^/]+\/)?([a-f0-9]+)/i);
+  if (m) return m[1];
+  if (/^[a-f0-9]{32}$/i.test(s)) return s;
+  return '';
+}
+
+async function bindExistingGist(input) {
+  const pat = await ST.getPAT();
+  if (!pat) throw new Error('no_pat');
+  const gistId = extractGistId(input);
+  if (!gistId) throw new Error('no_gist_id');
+  const gist = await GH.getGist(pat, gistId);
+  if (!gist || !gist.id) throw new Error('gist_not_found');
+  await ST.setGistId(gist.id);
+  await ST.setSyncEnabled(true);
+  await ST.setLastSyncAt(Date.now());
+  return { ok: true, gistId: gist.id, description: gist.description || '' };
+}
+
+async function findBetterStarGist() {
+  const pat = await ST.getPAT();
+  if (!pat) throw new Error('no_pat');
+  const gists = await GH.listGists(pat);
+  const matches = [];
+  for (const g of gists || []) {
+    const files = Object.keys((g && g.files) || {});
+    const isBetterStar = files.includes(META_FILE) || files.some((f) => f.startsWith('better-star-') && f.endsWith('.json'));
+    if (isBetterStar) {
+      matches.push({ gistId: g.id, description: g.description || '', files, updated_at: g.updated_at });
+    }
+  }
+  if (matches.length === 0) return { ok: true, found: false, candidates: [] };
+  matches.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  return { ok: true, found: true, candidates: matches };
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     try {
@@ -218,6 +257,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true, tags: r });
       } else if (msg.type === 'init_gist') {
         const r = await initGist(msg.description || 'better-star data');
+        sendResponse(r);
+      } else if (msg.type === 'bind_gist') {
+        const r = await bindExistingGist(msg.input || msg.gistId || msg.gistUrl || '');
+        sendResponse(r);
+      } else if (msg.type === 'find_gist') {
+        const r = await findBetterStarGist();
         sendResponse(r);
       } else if (msg.type === 'export_data') {
         const r = await exportData();

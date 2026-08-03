@@ -36,8 +36,47 @@ async function onInitGist() {
       document.getElementById("gistId").value = res.gistId;
       document.getElementById("syncEnabled").checked = true;
       status.textContent = "Bound";
+      initList();
     } else {
       status.textContent = "Failed";
+    }
+  });
+}
+
+async function onBindGist() {
+  const input = document.getElementById("gistInput").value.trim();
+  const status = document.getElementById("bindStatus");
+  if (!input) {
+    status.textContent = "Paste a gist ID or URL first";
+    return;
+  }
+  status.textContent = "Binding...";
+  chrome.runtime.sendMessage({ type: "bind_gist", input }, async (res) => {
+    if (res && res.ok) {
+      document.getElementById("gistId").value = res.gistId;
+      document.getElementById("syncEnabled").checked = true;
+      status.textContent = `Bound (${res.gistId})`;
+      initList();
+    } else {
+      status.textContent = res && res.error ? `Failed: ${res.error}` : "Failed";
+    }
+  });
+}
+
+async function onFindGist() {
+  const status = document.getElementById("bindStatus");
+  status.textContent = "Scanning...";
+  chrome.runtime.sendMessage({ type: "find_gist" }, async (res) => {
+    if (res && res.ok && res.found) {
+      const gist = res.candidates[0];
+      document.getElementById("gistId").value = gist.gistId;
+      document.getElementById("syncEnabled").checked = true;
+      status.textContent = `Found: ${gist.description || gist.gistId}`;
+      initList();
+    } else if (res && res.ok) {
+      status.textContent = "No better-star gist found on this account";
+    } else {
+      status.textContent = res && res.error ? `Failed: ${res.error}` : "Failed";
     }
   });
 }
@@ -83,6 +122,8 @@ async function onImport() {
 
 document.getElementById("testSave").addEventListener("click", onTestSave);
 document.getElementById("initGist").addEventListener("click", onInitGist);
+document.getElementById("bindGist").addEventListener("click", onBindGist);
+document.getElementById("findGist").addEventListener("click", onFindGist);
 document
   .getElementById("syncEnabled")
   .addEventListener("change", onSyncEnabledChange);

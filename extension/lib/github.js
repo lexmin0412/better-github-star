@@ -60,6 +60,13 @@
     return res
   }
 
+  async function listGists(pat, perPage = 100) {
+    const url = `https://api.github.com/gists?per_page=${perPage}`;
+    const data = await request(url, 'GET', pat);
+    if (!data || !Array.isArray(data)) return [];
+    return data;
+  }
+
   async function patchGistFiles(pat, gistId, filesObj) {
     const body = { files: filesObj };
     const gist = await request(`https://api.github.com/gists/${gistId}`, 'PATCH', pat, body);
@@ -105,6 +112,7 @@
     getStarredReposPage,
     createPrivateGist,
     getGist,
+    listGists,
     patchGistFiles,
     readGistFileContent,
   };
